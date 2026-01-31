@@ -1,17 +1,35 @@
 import pandas as pd
 import numpy as np
 
-def compute_indicators(df):
-    df['Momentum'] = df['Close'].diff(3)
-    df['Acceleration'] = df['Momentum'].diff(3)
-    df['ROC'] = df['Close'].pct_change(8) * 100
-    df['MACD'] = df['Close'].ewm(8).mean() - df['Close'].ewm(20).mean()
-    df['Signal'] = df['MACD'].ewm(6).mean()
-    rolling_mean = df['Close'].rolling(15).mean()
-    rolling_std = df['Close'].rolling(15).std()
-    df['Boll_Upper'] = rolling_mean + 1.5 * rolling_std
-    df['Boll_Lower'] = rolling_mean - 1.5 * rolling_std
-    df['RSI'] = 100 - (100 / (1 + df['Close'].diff().clip(lower=0).rolling(10).mean() /
-                                      df['Close'].diff().clip(upper=0).abs().rolling(10).mean()))
-    df = df.fillna(0)
-    return df
+
+def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+
+    df["momentum"] = df["Close"].diff(3)
+    df["acceleration"] = df["momentum"].diff(3)
+
+    df["roc"] = df["Close"].pct_change(8) * 100
+
+    fast = df["Close"].ewm(span=8, adjust=False).mean()
+    slow = df["Close"].ewm(span=20, adjust=False).mean()
+    df["macd"] = fast - slow
+    df["signal"] = df["macd"].ewm(span=6, adjust=False).mean()
+
+    window = 15
+    mean = df["Close"].rolling(window).mean()
+    std = df["Close"].rolling(window).std()
+
+    df["boll_upper"] = mean + 1.5 * std
+    df["boll_lower"] = mean - 1.5 * std
+
+    delta = df["Close"].diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+
+    avg_gain = gain.rolling(10).mean()
+    avg_loss = loss.rolling(10).mean()
+
+    rs = avg_gain / avg_loss.replace(0, np.nan)
+    df["rsi"] = 100 - (100 / (1 + rs))
+
+    return df.dropna()

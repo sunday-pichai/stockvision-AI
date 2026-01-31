@@ -1,20 +1,42 @@
+import numpy as np
+
+
 def generate_signal(df, ha_df, model, scaler, features):
-    latest = df.iloc[-1:][features]
-    scaled = scaler.transform(latest)
-    pred = model.predict(scaled)[0]
-    conf = max(model.predict_proba(scaled)[0])
-    score = 0
+    if df.empty or ha_df.empty:
+        return "no data", 0, 0.0
 
-    if pred == 1: score += 2
-    if df['MACD'].iloc[-1] > df['Signal'].iloc[-1]: score += 1
-    if df['RSI'].iloc[-1] < 30: score += 1
-    if ha_df['HA_Trend'].iloc[-1] == 1: score += 1
+    latest = df.iloc[-1:]
 
-    if score >= 4:
-        return "STRONG BUY", pred, conf
-    elif score >= 2:
-        return "BUY", pred, conf
-    elif score >= 0:
-        return "HOLD", pred, conf
+    if latest[features].isnull().any().any():
+        return "insufficient data", 0, 0.0
+
+    x_latest = scaler.transform(latest[features])
+    pred = model.predict(x_latest)[0]
+    conf = float(np.max(model.predict_proba(x_latest)[0]))
+
+    score = 0.0
+
+    if pred == 1:
+        score += 2.0 * conf
     else:
-        return "SELL", pred, conf
+        score -= 2.0 * conf
+
+    if df["macd"].iloc[-1] > df["signal"].iloc[-1]:
+        score += 1.0
+
+    if df["rsi"].iloc[-1] < 30:
+        score += 1.0
+
+    if ha_df["ha_trend"].iloc[-1] == 1:
+        score += 1.0
+
+    if score >= 3.5:
+        decision = "strong buy"
+    elif score >= 1.5:
+        decision = "buy"
+    elif score >= -1.0:
+        decision = "hold"
+    else:
+        decision = "sell"
+
+    return decision, pred, conf

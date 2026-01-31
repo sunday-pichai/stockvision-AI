@@ -1,8 +1,29 @@
 from run_analysis import run_analysis
-from config import DEFAULT_TICKER, DEFAULT_INTERVAL, DEFAULT_PERIOD
+from config import default_ticker, default_interval, default_period
+
+
+def clean_input(value, default):
+    value = value.strip()
+    return value if value else default
+
 
 if __name__ == "__main__":
-    ticker = input(f"Ticker ({DEFAULT_TICKER}): ") or DEFAULT_TICKER
-    interval = input(f"Interval ({DEFAULT_INTERVAL}): ") or DEFAULT_INTERVAL
-    period = input(f"Period ({DEFAULT_PERIOD}): ") or DEFAULT_PERIOD
+    print("stockvision-ai")
+    print("=" * 40)
+
+    ticker = clean_input(
+        input(f"ticker [{default_ticker}]: "),
+        default_ticker,
+    )
+
+    interval = clean_input(
+        input(f"interval [{default_interval}]: "),
+        default_interval,
+    )
+
+    period = clean_input(
+        input(f"period [{default_period}]: "),
+        default_period,
+    )
+
     run_analysis(ticker, interval, period)
